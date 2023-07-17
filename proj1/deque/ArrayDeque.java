@@ -95,12 +95,13 @@ public class ArrayDeque<T> implements Iterable<T>{
 
     @Override
     public boolean equals(Object other) {
+        if (other == null) return false;
         if (this == other) return true;
-        if (other instanceof ArrayDeque otherList) {
-            if (otherList.size != this.size) return false;
-            for (int i = 0; i < size; i++) {
-                if (!this.get(i).equals(otherList.get(i))) return false;
-            }
+        if (this.getClass() != other.getClass()) return false;
+        ArrayDeque<T> otherList = (ArrayDeque<T>) other;
+        if (otherList.size != this.size) return false;
+        for (int i = 0; i < size; i++) {
+            if (!this.get(i).equals(otherList.get(i))) return false;
         }
         return true;
     }

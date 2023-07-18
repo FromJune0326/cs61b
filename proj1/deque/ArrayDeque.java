@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<T> implements Deque<T>{
+public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     private T[] items;
     private int size;
     private int nextFirst;
@@ -30,7 +30,9 @@ public class ArrayDeque<T> implements Deque<T>{
 
     @Override
     public void addFirst(T item) {
-        if (size == items.length) resize(size * 2);
+        if (size == items.length) {
+            resize(size * 2);
+        }
         items[nextFirst] = item;
         nextFirst = (nextFirst + 1) % items.length;
         size += 1;
@@ -38,7 +40,9 @@ public class ArrayDeque<T> implements Deque<T>{
 
     @Override
     public void addLast(T item) {
-        if (size == items.length) resize(size * 2);
+        if (size == items.length) {
+            resize(size * 2);
+        }
         items[nextLast] = item;
         nextLast = (nextLast - 1 + items.length) % items.length;
         size += 1;
@@ -65,7 +69,9 @@ public class ArrayDeque<T> implements Deque<T>{
             resize(items.length / 4);
         }
         int newNextFirst = (nextFirst - 1 + items.length) % items.length;
-        if (items[newNextFirst] == null) return null;
+        if (items[newNextFirst] == null) {
+            return null;
+        }
         T x = items[newNextFirst];
         items[newNextFirst] = null;
         nextFirst = newNextFirst;
@@ -79,7 +85,9 @@ public class ArrayDeque<T> implements Deque<T>{
             resize(items.length / 4);
         }
         int newNextLast = (nextLast + 1) % items.length;
-        if (items[newNextLast] == null) return null;
+        if (items[newNextLast] == null) {
+            return null;
+        }
         T x = items[newNextLast];
         items[newNextLast] = null;
         nextLast = newNextLast;
@@ -89,23 +97,26 @@ public class ArrayDeque<T> implements Deque<T>{
 
     @Override
     public T get(int index) {
-        if (index >= size) return null;
+        if (index >= size) {
+            return null;
+        }
         return items[(nextFirst - index - 1 + items.length) % items.length];
     }
 
+    @Override
     public Iterator<T> iterator() {
         return new ArrayDequeIterator();
     }
 
     @Override
     public boolean equals(Object other) {
-        if (other == null) return false;
-        if (this == other) return true;
-        if (this.getClass() != other.getClass()) return false;
+        if (other == null) { return false; }
+        if (this == other) { return true; }
+        if (this.getClass() != other.getClass()) { return false; }
         ArrayDeque<T> otherList = (ArrayDeque<T>) other;
-        if (otherList.size != this.size) return false;
+        if (otherList.size != this.size) { return false; }
         for (int i = 0; i < size; i++) {
-            if (!this.get(i).equals(otherList.get(i))) return false;
+            if (!this.get(i).equals(otherList.get(i))) { return false; }
         }
         return true;
     }

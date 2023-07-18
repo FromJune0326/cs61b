@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class LinkedListDeque<T> implements Deque<T>{
+public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
     private class Node {
         public T item;
         public Node next;
@@ -22,13 +22,6 @@ public class LinkedListDeque<T> implements Deque<T>{
         sentinel.pre = sentinel;
         sentinel.next = sentinel;
         size = 0;
-    }
-
-    public LinkedListDeque(T item) {
-        sentinel = new Node(null, null, null);
-        sentinel.next = new Node(item, sentinel, sentinel);
-        sentinel.pre = sentinel.next;
-        size = 1;
     }
 
     @Override
@@ -91,7 +84,9 @@ public class LinkedListDeque<T> implements Deque<T>{
 
     @Override
     public T get(int index) {
-        if (index >= size) return null;
+        if (index >= size) {
+            return null;
+        }
         Node p = sentinel;
         int i = 0;
         while (p.next != sentinel) {
@@ -105,35 +100,52 @@ public class LinkedListDeque<T> implements Deque<T>{
     }
 
     public T getRecursive(int index) {
-        if (index >= size) return null;
+        if (index >= size) {
+            return null;
+        }
         return getRecursiveStartAtNode(sentinel, index);
     }
 
+    @Override
     public Iterator<T> iterator() {
         return new LinkedListDequeIterator();
     }
 
     @Override
     public boolean equals(Object other) {
-        if (other == null) return false;
-        if (this == other) return true;
-        if (this.getClass() != other.getClass()) return false;
+        if (other == null) {
+            return false;
+        }
+        if (this == other) {
+            return true;
+        }
+        if (this.getClass() != other.getClass()) {
+            return false;
+        }
         LinkedListDeque<T> otherList = (LinkedListDeque<T>) other;
-        if (otherList.size != this.size) return false;
+        if (otherList.size != this.size) {
+            return false;
+        }
         Node p = this.sentinel;
         Node q = otherList.sentinel;
         while (p.next != sentinel) {
             p = p.next;
             q = q.next;
-            if (!p.item.equals(q.item)) return false;
+            if (!p.item.equals(q.item)) {
+                return false;
+            }
         }
         return true;
     }
 
     private T getRecursiveStartAtNode(Node p, int i) {
-        if (i == 0) return p.next.item;
-        if (p.next == sentinel && i > 0) return null;
-        return getRecursiveStartAtNode(p.next, i-1);
+        if (i == 0) {
+            return p.next.item;
+        }
+        if (p.next == sentinel && i > 0) {
+            return null;
+        }
+        return getRecursiveStartAtNode(p.next, i - 1);
     }
 
     private class LinkedListDequeIterator implements Iterator<T> {

@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<T> implements Iterable<T>{
+public class ArrayDeque<T> implements Deque<T>{
     private T[] items;
     private int size;
     private int nextFirst;
@@ -28,28 +28,28 @@ public class ArrayDeque<T> implements Iterable<T>{
         items = a;
     }
 
+    @Override
     public void addFirst(T item) {
         if (size == items.length) resize(size * 2);
         items[nextFirst] = item;
-        nextFirst += 1;
+        nextFirst = (nextFirst + 1) % items.length;
         size += 1;
     }
 
+    @Override
     public void addLast(T item) {
         if (size == items.length) resize(size * 2);
         items[nextLast] = item;
-        nextLast -= 1;
+        nextLast = (nextLast - 1 + items.length) % items.length;
         size += 1;
     }
 
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
+    @Override
     public int size() {
         return size;
     }
 
+    @Override
     public void printDeque() {
         StringBuilder returnStr = new StringBuilder();
         for(T x: this) {
@@ -59,34 +59,38 @@ public class ArrayDeque<T> implements Iterable<T>{
         System.out.println(returnStr);
     }
 
+    @Override
     public T removeFirst() {
         if ((size < items.length / 4) && (size > 8)) {
             resize(items.length / 4);
         }
-        if (nextFirst == 0) return null;
-        T x = items[nextFirst - 1];
-        items[nextFirst - 1] = null;
-        nextFirst -= 1;
+        int newNextFirst = (nextFirst - 1 + items.length) % items.length;
+        if (items[newNextFirst] == null) return null;
+        T x = items[newNextFirst];
+        items[newNextFirst] = null;
+        nextFirst = newNextFirst;
         size -= 1;
         return x;
     }
 
+    @Override
     public T removeLast() {
         if ((size < items.length / 4) && (size > 8)) {
             resize(items.length / 4);
         }
-        if (nextLast == items.length - 1) return null;
-        T x = items[nextLast + 1];
-        items[nextLast + 1] = null;
-        nextLast += 1;
+        int newNextLast = (nextLast + 1) % items.length;
+        if (items[newNextLast] == null) return null;
+        T x = items[newNextLast];
+        items[newNextLast] = null;
+        nextLast = newNextLast;
         size -= 1;
         return x;
     }
 
+    @Override
     public T get(int index) {
         if (index >= size) return null;
-        if (index < nextFirst) return items[nextFirst - index - 1];
-        return items[nextLast - (index - size)];
+        return items[(nextFirst - index - 1 + items.length) % items.length];
     }
 
     public Iterator<T> iterator() {

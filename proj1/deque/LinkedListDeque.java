@@ -119,18 +119,19 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         if (this == other) {
             return true;
         }
-        if ((other instanceof Deque otherList)) {
-            if (otherList.size() != this.size()) {
+        if (!Deque.class.isInstance(other)) {
+            return false;
+        }
+        Deque<T> otherList = (Deque<T>) other;
+        if (otherList.size() != this.size()) {
+            return false;
+        }
+        for (int i = 0; i < this.size(); i++) {
+            if (!this.get(i).equals(otherList.get(i))) {
                 return false;
             }
-            for (int i = 0; i < this.size(); i++) {
-                if (!this.get(i).equals(otherList.get(i))) {
-                    return false;
-                }
-            }
-            return true;
         }
-        return false;
+        return true;
     }
 
     private T getRecursiveStartAtNode(Node p, int i) {

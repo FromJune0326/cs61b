@@ -2,12 +2,12 @@ package deque;
 
 import java.util.Iterator;
 
-public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
+public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     private class Node {
-        public T item;
-        public Node next;
-        public Node pre;
-        public Node(T item, Node pre, Node next) {
+        T item;
+        Node next;
+        Node pre;
+        Node(T item, Node pre, Node next) {
             this.item = item;
             this.pre = pre;
             this.next = next;
@@ -119,23 +119,18 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
         if (this == other) {
             return true;
         }
-        if (this.getClass() != other.getClass()) {
-            return false;
-        }
-        LinkedListDeque<T> otherList = (LinkedListDeque<T>) other;
-        if (otherList.size != this.size) {
-            return false;
-        }
-        Node p = this.sentinel;
-        Node q = otherList.sentinel;
-        while (p.next != sentinel) {
-            p = p.next;
-            q = q.next;
-            if (!p.item.equals(q.item)) {
+        if ((other instanceof Deque otherList)) {
+            if (otherList.size() != this.size()) {
                 return false;
             }
+            for (int i = 0; i < this.size(); i++) {
+                if (!this.get(i).equals(otherList.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 
     private T getRecursiveStartAtNode(Node p, int i) {
@@ -151,7 +146,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T>{
     private class LinkedListDequeIterator implements Iterator<T> {
         private int wisPos;
         private Node wisNode;
-        public LinkedListDequeIterator() {
+        LinkedListDequeIterator() {
             wisPos = 0;
             wisNode = sentinel;
         }

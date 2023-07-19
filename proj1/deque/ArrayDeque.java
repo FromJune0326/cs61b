@@ -17,21 +17,24 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     private void resize(int capacity) {
         T[] a = (T[]) new Object[capacity];
-        for (int i = 0; i < nextFirst; i++) {
-            a[i] = items[i];
-        }
         int sizeDiff = capacity - items.length;
-        for (int i = nextLast + 1 + sizeDiff; i < capacity; i++) {
-            a[i] = items[i - sizeDiff];
+        for (int i = 0; i < size; i++) {
+            int curIndex = nextLast + i + 1;
+            if (curIndex < items.length) {
+                a[Math.floorMod(curIndex + sizeDiff, capacity)] = items[curIndex];
+            }
+            else {
+                a[curIndex % items.length] = items[curIndex % items.length];
+            }
         }
-        nextLast = nextLast + sizeDiff;
+        nextLast = Math.floorMod(nextLast + sizeDiff, capacity);
         items = a;
     }
 
     @Override
     public void addFirst(T item) {
-        if (size == items.length) {
-            resize(size * 2);
+        if (size + 1 == items.length) {
+            resize((size + 1) * 2);
         }
         items[nextFirst] = item;
         nextFirst = (nextFirst + 1) % items.length;
@@ -40,8 +43,8 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public void addLast(T item) {
-        if (size == items.length) {
-            resize(size * 2);
+        if (size + 1 == items.length) {
+            resize((size + 1) * 2);
         }
         items[nextLast] = item;
         nextLast = (nextLast - 1 + items.length) % items.length;
@@ -56,7 +59,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     @Override
     public void printDeque() {
         StringBuilder returnStr = new StringBuilder();
-        for(T x: this) {
+        for (T x: this) {
             returnStr.append(x);
             returnStr.append(" ");
         }
@@ -110,20 +113,29 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public boolean equals(Object other) {
-        if (other == null) { return false; }
-        if (this == other) { return true; }
-        if (this.getClass() != other.getClass()) { return false; }
-        ArrayDeque<T> otherList = (ArrayDeque<T>) other;
-        if (otherList.size != this.size) { return false; }
-        for (int i = 0; i < size; i++) {
-            if (!this.get(i).equals(otherList.get(i))) { return false; }
+        if (other == null) {
+            return false;
         }
-        return true;
+        if (this == other) {
+            return true;
+        }
+        if ((other instanceof Deque otherList)) {
+            if (otherList.size() != this.size()) {
+                return false;
+            }
+            for (int i = 0; i < this.size(); i++) {
+                if (!this.get(i).equals(otherList.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     private class ArrayDequeIterator implements Iterator<T> {
         private int wisPos;
-        public ArrayDequeIterator() {
+        ArrayDequeIterator() {
             wisPos = 0;
         }
 

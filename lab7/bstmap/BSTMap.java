@@ -4,10 +4,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class BSTMap<K extends Comparable, V>  implements Map61B<K, V>{
+public class BSTMap<K extends Comparable<K>, V>  implements Map61B<K, V>{
 
     private Node root;
-    int size = 0;
+    private int size = 0;
 
     @Override
     public void clear() {
@@ -94,6 +94,15 @@ public class BSTMap<K extends Comparable, V>  implements Map61B<K, V>{
         Set<K> keys = new HashSet<>();
         traverseKey(root, keys);
         return keys;
+    }
+
+    public void printInOrder() {
+        StringBuilder returnStr = new StringBuilder();
+        for (K k: this) {
+            returnStr.append(k);
+            returnStr.append(" ");
+        }
+        System.out.println(returnStr);
     }
 
     private void traverseKey(Node n, Set<K> keys) {

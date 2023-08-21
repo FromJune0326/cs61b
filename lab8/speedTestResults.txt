@@ -1,0 +1,17 @@
+Enter # strings to insert into hashmap.ULLMap: 10000000
+--Stack Overflow -- couldn't add 10000000 strings.
+
+Enter # strings to insert into hashmap.MyHashMap: 10000000
+class hashmap.MyHashMap: 6.60 sec
+
+Enter # strings to insert into Java's HashMap: 10000000
+Java's Built-in HashMap: 2.65 sec
+
+Enter # strings to insert into hashmap.ULLMap: 10000000
+--Stack Overflow -- couldn't add 10000000 strings of length 5.
+
+Enter # strings to insert into your hashmap.MyHashMap: 10000000
+class hashmap.MyHashMap: 11.11 sec
+
+Enter # strings to insert into Java's HashMap: 10000000
+Java's Built-in HashMap: 2.94 sec

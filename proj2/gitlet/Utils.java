@@ -236,4 +236,21 @@ class Utils {
         System.out.printf(msg, args);
         System.out.println();
     }
+
+    /** Print a message then exit. */
+    static void exitWithMsg(String message) {
+        if (message != null && !message.equals("")) {
+            System.out.printf(message);
+        }
+        System.exit(0);
+    }
+
+    static String getFileHash(File file) {
+        return Utils.sha1(Utils.readContentsAsString(file));
+    }
+
+//    /** Check if user inputs the validated operands */
+//    static void validateOperands(String cmd, String args[], int n) {
+//
+//    }
 }

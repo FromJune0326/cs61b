@@ -1,7 +1,7 @@
 package gitlet;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+ *  @author yyy
  */
 public class Main {
 
@@ -25,6 +25,38 @@ public class Main {
             case "commit":
                 validateNumArgs("commit", args, 2);
                 Repository.makeNewCommit(args[1]);
+                break;
+            case "rm":
+                validateNumArgs("rm", args, 2);
+                Repository.removeFile(args[1]);
+                break;
+            case "log":
+                validateNumArgs("log", args, 1);
+                Repository.printLog();
+                break;
+            case "global-log":
+                validateNumArgs("global-log", args, 1);
+                // TODO: implement after supporting branch
+                break;
+            case "find":
+                validateNumArgs("find", args, 2);
+                break;
+            case "status":
+                break;
+            case "checkout":
+                if (args.length == 2) {
+                    String branchName = args[1];
+                    // Checkout branch
+                    // eg: checkout [branch name]
+                } else if (args.length == 3) {
+                    // Checkout head file
+                    // eg: checkout -- [file name]
+                    Repository.checkoutFile(null, args[2]);
+                } else if (args.length == 4) {
+                    // Checkout specific commit file
+                    // eg: checkout [commit id] -- [file name]
+                    Repository.checkoutFile(args[1], args[3]);
+                }
                 break;
             default:
                 Utils.exitWithMsg("No command with that name exists.");

@@ -35,6 +35,8 @@ public class Repository {
 
     public static final File STAGE_DIR = join(GITLET_DIR, "Stage");
 
+    public static final File REMOVE_DIR = join(STAGE_DIR, "Remove");
+
     public static final File COMMIT_DIR = join(GITLET_DIR, "Commit");
 
     public static final File BLOB_DIR = join(GITLET_DIR, "Blob");
@@ -60,12 +62,13 @@ public class Repository {
     }
 
     public static void addFileToStageArea(String fileName){
+        Commit curCommit = getCommit(head);
         File fileToAdd = Utils.join(CWD, fileName);
         if (!fileToAdd.exists()) {
             Utils.exitWithMsg("File does not exist.");
         }
         File stagedFile = Utils.join(STAGE_DIR, fileName);
-        if (getCurrentCommit().hasSameBlob(fileToAdd)) {
+        if (curCommit.hasBlob(fileToAdd)) {
             if (stagedFile.exists()) {
                 Utils.restrictedDelete(stagedFile);
             }
@@ -78,29 +81,114 @@ public class Repository {
         }
     }
 
+    public static void removeFile(String fileName) {
+        Commit curCommit = getCommit(head);
+        File file = join(CWD, fileName);
+        File stagedFile = join(STAGE_DIR, fileName);
+        File stagedToRemoveFile = join(REMOVE_DIR, fileName);
+        if (!(stagedFile.exists() || curCommit.hasFile(fileName))) {
+            Utils.exitWithMsg("No reason to remove the file");
+        }
+        if (stagedFile.exists()) {
+            Utils.restrictedDelete(stagedFile);
+        }
+        if (curCommit.hasFile(fileName)) {
+            /* Remove the file from working directory and stage for removal */
+            Utils.restrictedDelete(file);
+            try {
+                stagedToRemoveFile.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public static void makeNewCommit(String message) {
         List<String> stagedFiles = Utils.plainFilenamesIn(STAGE_DIR);
-        if (stagedFiles == null) {
+        List<String> filesToRemove = Utils.plainFilenamesIn(REMOVE_DIR);
+        if (stagedFiles == null && filesToRemove == null) {
             Utils.exitWithMsg("No changes added to the commit.");
         }
         if (message.isEmpty()) {
             Utils.exitWithMsg("Please enter a commit message.");
         }
-        Commit curCommit = getCurrentCommit();
+        Commit curCommit = getCommit(head);
         Commit newCommit = curCommit.makeCopy(message);
         /* Update blobs according to staging area */
-        for (String fileName: stagedFiles) {
-            File file = new File(STAGE_DIR, fileName);
-            String fileHash = Utils.getFileHash(file);
-            newCommit.addBlob(fileName, fileHash);
-            try {
-                Files.move(file.toPath(), getBlobFile(fileHash, fileName).toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        if (stagedFiles != null) {
+            for (String fileName: stagedFiles) {
+                File file = new File(STAGE_DIR, fileName);
+                String fileHash = Utils.getFileHash(file);
+                newCommit.addBlob(fileName, fileHash);
+                try {
+                    Files.move(file.toPath(), getBlobFile(fileHash, fileName).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        if (filesToRemove != null) {
+            for (String fileName: filesToRemove) {
+                File file = new File(REMOVE_DIR, fileName);
+                newCommit.removeBlob(fileName);
+                /* Delete staging remove file */
+                Utils.restrictedDelete(file);
             }
         }
         writeCommit(newCommit);
         head = newCommit.getHash();
+    }
+
+    public static void printLog() {
+        Commit curCommit = getCommit(head);
+        while (curCommit != null) {
+            // TODO: support displaying merge commit
+            System.out.println("===");
+            System.out.printf("commit %s\n", curCommit.getHash());
+            System.out.printf("Date: %s\n", Utils.getFormattedDate(new Date(curCommit.getDateCreated())));
+            System.out.println(curCommit.getMessage());
+            System.out.println();
+            curCommit = getCommit(curCommit.getParentHash());
+        }
+    }
+
+    public static void printGlobalLog() {
+
+    }
+
+    public static void printCommitByMessage() {
+
+    }
+
+    public static void printStatus() {
+
+    }
+
+    public static void checkoutFile(String commitHash, String fileName) {
+        // TODO: branch
+        if (commitHash == null) {
+            commitHash = head;
+        } else {
+            head = commitHash;
+        }
+        Commit commit = getCommit(commitHash);
+        if (commit == null) {
+            Utils.exitWithMsg("No commit with that id exists");
+        }
+        if (!commit.hasFile(fileName)) {
+            Utils.exitWithMsg("File does not exist in that commit.");
+        }
+        File workingFile = Utils.join(CWD, fileName);
+        File blobFile = getBlobFile(commit.getFileHash(fileName), fileName);
+        try {
+            Files.copy(blobFile.toPath(), workingFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void checkoutBranch(String branchName) {
+
     }
 
     public static void setupPersistence() {
@@ -108,11 +196,16 @@ public class Repository {
         BLOB_DIR.mkdir();
         COMMIT_DIR.mkdir();
         STAGE_DIR.mkdir();
+        REMOVE_DIR.mkdir();
         COMMIT_POINTER_DIR.mkdir();
     }
 
-    public static Commit getCurrentCommit() {
-        return Utils.readObject(getCommitFile(head), Commit.class);
+    public static Commit getCommit(String hash) {
+        if (hash != null) {
+            return Utils.readObject(getCommitFile(hash), Commit.class);
+        } else {
+            return null;
+        }
     }
 
     public static void writeCommit(Commit commit) {

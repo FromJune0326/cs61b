@@ -17,6 +17,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
+import java.util.Date;
+import java.util.Locale;
 
 
 /** Assorted utilities.
@@ -70,7 +72,8 @@ class Utils {
      *  and throws IllegalArgumentException unless the directory designated by
      *  FILE also contains a directory named .gitlet. */
     static boolean restrictedDelete(File file) {
-        if (!(new File(file.getParentFile(), ".gitlet")).isDirectory()) {
+        if (!(new File(file.getParentFile(), ".gitlet")).isDirectory() &&
+                !(file.getParentFile().toString().contains(".gitlet"))) {
             throw new IllegalArgumentException("not .gitlet working directory");
         }
         if (!file.isDirectory()) {
@@ -243,6 +246,19 @@ class Utils {
             System.out.printf(message);
         }
         System.exit(0);
+    }
+
+    static String getFormattedDate(Date date) {
+        // Create a Formatter with the desired format and locale
+        Formatter formatter = new Formatter(Locale.US);
+        try {
+            formatter.format("%1$ta %1$tb %1$td %1$tT %1$tY %1$tz", date);
+            // Close the Formatter
+            return formatter.toString();
+        } finally {
+            formatter.close();
+        }
+
     }
 
     static String getFileHash(File file) {

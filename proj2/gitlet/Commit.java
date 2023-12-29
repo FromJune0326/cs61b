@@ -13,8 +13,7 @@ import java.util.TreeMap;
 public class Commit implements Serializable {
     private String dateCreated;
 
-    private String parentID = null;
-    private transient Commit parent = null;
+    private String parentHash = null;
 
     /** The message of this Commit. */
     private String message;
@@ -25,9 +24,20 @@ public class Commit implements Serializable {
         message = msg;
         dateCreated = date;
         if (parent != null) {
-            this.parent = parent;
-            this.parentID = Utils.sha1(Utils.serialize(parent));
+            this.parentHash = Utils.sha1(Utils.serialize(parent));
         }
+    }
+
+    public String getParentHash() {
+        return parentHash;
+    }
+
+    public String getDateCreated() {
+        return dateCreated;
+    }
+
+    public String getMessage() {
+        return message;
     }
 
     public String getHash() {
@@ -44,10 +54,26 @@ public class Commit implements Serializable {
         blobHashes.put(fileName, hash);
     }
 
-    public boolean hasSameBlob(File file) {
+    public boolean hasBlob(File file) {
         String fileName = file.getName();
         String fileHash = Utils.getFileHash(file);
         return blobHashes.containsKey(fileName) && (blobHashes.get(fileName).equals(fileHash));
     }
+
+    public void removeBlob(String fileName) {
+        blobHashes.remove(fileName);
+    }
+
+    public boolean hasFile(String fileName) {
+        return blobHashes.containsKey(fileName);
+    }
+
+    public String getFileHash(String fileName) {
+        if (hasFile(fileName)) {
+            return blobHashes.get(fileName);
+        }
+        return null;
+    }
+
 
 }

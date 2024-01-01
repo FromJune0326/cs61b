@@ -4,6 +4,7 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Set;
 import java.util.TreeMap;
 
 /** Represents a gitlet commit object.
@@ -75,5 +76,8 @@ public class Commit implements Serializable {
         return null;
     }
 
+    public Set<String> getFiles() {
+        return blobHashes.keySet();
+    }
 
 }

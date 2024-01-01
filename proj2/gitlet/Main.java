@@ -45,9 +45,10 @@ public class Main {
                 break;
             case "checkout":
                 if (args.length == 2) {
-                    String branchName = args[1];
                     // Checkout branch
                     // eg: checkout [branch name]
+                    String branchName = args[1];
+                    Repository.checkoutBranch(branchName);
                 } else if (args.length == 3) {
                     // Checkout head file
                     // eg: checkout -- [file name]
@@ -57,6 +58,22 @@ public class Main {
                     // eg: checkout [commit id] -- [file name]
                     Repository.checkoutFile(args[1], args[3]);
                 }
+                break;
+            case "branch":
+                validateNumArgs("branch", args, 2);
+                Repository.makeBranch(args[1]);
+                break;
+            case "rm-branch":
+                validateNumArgs("branch", args, 2);
+                Repository.removeBranch(args[1]);
+                break;
+            case "reset":
+                validateNumArgs("reset", args, 2);
+                Repository.resetToCommit(args[1]);
+                break;
+            case "merge":
+                validateNumArgs("merge", args, 2);
+                Repository.mergeBranch(args[1]);
                 break;
             default:
                 Utils.exitWithMsg("No command with that name exists.");

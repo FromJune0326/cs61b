@@ -1,0 +1,70 @@
+# A simple test of branching, and checking out.
+I definitions.inc
+> init
+<<<
++ wug.txt wug.txt
+> add wug.txt
+<<<
+> commit "added wug"
+<<<
++ notwug.txt notwug.txt
+> add notwug.txt
+<<<
+> commit "added notwug"
+<<<
+> log
+===
+${COMMIT_HEAD}
+added notwug
+
+===
+${COMMIT_HEAD}
+added wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*
+# UID of notwug
+D UID2 "${1}"
+# UID of wug
+D UID1 "${2}"
+
+> reset dasdqwfqwfqw
+No commit with that id exists.
+<<<
+
+> reset ${UID1}
+<<<
+E wug.txt
+* notwug.txt
+> log
+===
+${COMMIT_HEAD}
+added wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*
+
+> reset ${UID2}
+<<<
+E wug.txt
+E notwug.txt
+> log
+===
+${COMMIT_HEAD}
+added notwug
+
+===
+${COMMIT_HEAD}
+added wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*

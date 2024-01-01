@@ -1,0 +1,25 @@
+# A simple test of adding and commit.
+> init
+<<<
++ wug.txt wug.txt
+> commit "added wug"
+No changes added to the commit.
+<<<
+> add wug.txt
+<<<
+> commit ""
+Please enter a commit message.
+<<<
+> commit "added wug"
+<<<
+* .gitlet/Stage/wug.txt
+> add wug.txt
+<<<
+* .gitlet/Stage/wug.txt
++ wug.txt notwug.txt
+> add wug.txt
+<<<
+E .gitlet/Stage/wug.txt
+
+
+

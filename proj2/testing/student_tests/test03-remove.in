@@ -1,0 +1,27 @@
+# Remove staged file only.
+> init
+<<<
+> rm wug.txt
+No reason to remove the file
+<<<
++ wug.txt wug.txt
+> add wug.txt
+<<<
+E .gitlet/Stage/wug.txt
+> rm wug.txt
+<<<
+* .gitlet/Stage/wug.txt
+
+# Remove commited files
++ wug.txt wug.txt
+> add wug.txt
+<<<
+> commit "added wug"
+<<<
+> rm wug.txt
+<<<
+E .gitlet/Stage/Remove/wug.txt
+> commit "remove wug"
+<<<
+* .gitlet/Stage/Remove/wug.txt
+

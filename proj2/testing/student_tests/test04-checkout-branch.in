@@ -1,0 +1,52 @@
+# A simple test of branching, and checking out.
+I definitions.inc
+> init
+<<<
+> branch cool-beans
+<<<
+> checkout master
+No need to checkout the current branch.
+<<<
+> checkout notexists
+No such branch exists.
+<<<
++ wug.txt wug.txt
+> checkout cool-beans
+There is an untracked file in the way; delete it, or add and commit it first.
+<<<
+
+
+> add wug.txt
+<<<
+> commit "added wug"
+<<<
+> checkout cool-beans
+<<<
++ notwug.txt notwug.txt
+> add notwug.txt
+<<<
+> commit "added notwug"
+<<<
+> log
+===
+${COMMIT_HEAD}
+added notwug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*
+# Check master branch
+> checkout master
+<<<
+> log
+===
+${COMMIT_HEAD}
+added wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*

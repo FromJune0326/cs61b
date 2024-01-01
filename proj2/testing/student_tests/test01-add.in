@@ -1,0 +1,19 @@
+# A simple test of adding.
+> init
+<<<
++ wug.txt wug.txt
+
+# Check add when no commit
+* .gitlet/Stage/wug.txt
+> add wug.txt
+<<<
+E .gitlet/Stage/wug.txt
+= .gitlet/Stage/wug.txt wug.txt
+
+# Check overwrite added file
++ wug.txt notwug.txt
+> add wug.txt
+<<<
+E .gitlet/Stage/wug.txt
+= .gitlet/Stage/wug.txt notwug.txt
+

@@ -1,0 +1,53 @@
+# A simple test of merging.
+I definitions.inc
+> init
+<<<
++ wug.txt wug.txt
+> add wug.txt
+<<<
+> commit "added wug"
+<<<
+
+> branch test-branch
+<<<
++ wug.txt wug_master.txt
+> add wug.txt
+<<<
+> commit "added new wug to master branch"
+<<<
+
+> checkout test-branch
+<<<
+
++ wug.txt wug_test_branch.txt
+> add wug.txt
+<<<
+> commit "added new wug to test branch"
+<<<
+
+> checkout master
+<<<
+> merge test-branch
+Encountered a merge conflict.
+<<<
+= .gitlet/Stage/wug.txt merged_wug.txt
+
+> log
+===
+${COMMIT_HEAD}
+merge test-branch into master
+
+===
+${COMMIT_HEAD}
+added new wug to master branch
+
+===
+===
+${COMMIT_HEAD}
+added wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*

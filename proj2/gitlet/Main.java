@@ -20,7 +20,7 @@ public class Main {
                 break;
             case "add":
                 validateNumArgs("add", args, 2);
-                Repository.addFileToStageArea(args[1]);
+                Repository.stageFileForAdd(Utils.join(Repository.CWD, args[1]));
                 break;
             case "commit":
                 validateNumArgs("commit", args, 2);
@@ -28,7 +28,7 @@ public class Main {
                 break;
             case "rm":
                 validateNumArgs("rm", args, 2);
-                Repository.removeFile(args[1]);
+                Repository.stageFileForRemove(Utils.join(Repository.CWD, args[1]));
                 break;
             case "log":
                 validateNumArgs("log", args, 1);

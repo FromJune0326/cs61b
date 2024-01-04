@@ -6,7 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.TreeMap;
 
 import static gitlet.Utils.*;
@@ -62,15 +63,15 @@ public class Repository {
         }
     }
 
-    public static void addFileToStageArea(String fileName){
+    public static void stageFileForAdd(File fileToAdd){
         Commit curCommit = getCommit(branches.get(head));
-        File fileToAdd = Utils.join(CWD, fileName);
         if (!fileToAdd.exists()) {
             Utils.exitWithMsg("File does not exist.");
         }
-        File stagedFile = Utils.join(STAGE_DIR, fileName);
+        File stagedFile = Utils.join(STAGE_DIR, fileToAdd.getName());
         if (curCommit.hasBlob(fileToAdd)) {
             if (stagedFile.exists()) {
+                // Removed staged file if the file to add is the same as committed one
                 Utils.restrictedDelete(stagedFile);
             }
         } else {
@@ -79,12 +80,17 @@ public class Repository {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            // If staged for removal, remove it from remove dir
+            File fileToRemove = Utils.join(REMOVE_DIR, fileToAdd.getName());
+            if (fileToRemove.exists()) {
+                Utils.restrictedDelete(fileToRemove);
+            }
         }
     }
 
-    public static void removeFile(String fileName) {
+    public static void stageFileForRemove(File fileToRemove) {
         Commit curCommit = getCommit(branches.get(head));
-        File file = join(CWD, fileName);
+        String fileName = fileToRemove.getName();
         File stagedFile = join(STAGE_DIR, fileName);
         File stagedToRemoveFile = join(REMOVE_DIR, fileName);
         if (!(stagedFile.exists() || curCommit.hasFile(fileName))) {
@@ -95,7 +101,9 @@ public class Repository {
         }
         if (curCommit.hasFile(fileName)) {
             /* Remove the file from working directory and stage for removal */
-            Utils.restrictedDelete(file);
+            if (fileToRemove.exists()) {
+                Utils.restrictedDelete(fileToRemove);
+            }
             try {
                 stagedToRemoveFile.createNewFile();
             } catch (IOException e) {
@@ -232,11 +240,7 @@ public class Repository {
         Commit checkoutCommit = getCommit(newCommitHash);
         List<String> workingFiles = Utils.plainFilenamesIn(CWD);
         if (workingFiles != null) {
-            for (String workingFileName: workingFiles) {
-                if (!curCommit.hasFile(workingFileName)) {
-                    Utils.exitWithMsg("There is an untracked file in the way; delete it, or add and commit it first.");
-                }
-            }
+            checkUntrackedFiles();
             // Remove files not tracked in checked-out branch
             for (String workingFileName: workingFiles) {
                 if (!checkoutCommit.hasFile(workingFileName)) {
@@ -275,7 +279,92 @@ public class Repository {
 
     /* Merge current branch with target branch */
     public static void mergeBranch(String branchName) {
+        checkUntrackedFiles();
+        if (hasStagedFiles()) {
+            Utils.exitWithMsg("You have uncommitted changes.");
+        }
+        if (!branches.containsKey(branchName)) {
+            Utils.exitWithMsg("A branch with that name does not exist.");
+        }
+        if (branchName.equals(head)) {
+            Utils.exitWithMsg("Cannot merge a branch with itself.");
+        }
 
+        Commit curCommit = getCommit(branches.get(head));
+        Commit otherCommit = getCommit(branches.get(branchName));
+        Commit splitPoint = getLastSplitPoint(curCommit, otherCommit);
+        if (otherCommit.getHash().equals(splitPoint.getHash())) {
+            Utils.exitWithMsg("Given branch is an ancestor of the current branch.");
+        }
+        if (curCommit.getHash().equals(splitPoint.getHash())) {
+            checkoutBranch(branchName);
+            Utils.exitWithMsg("Current branch fast-forwarded.");
+        }
+        Commit mergeCommit = curCommit.makeCopy(String.format("Merge %s into %s", branchName, head));
+        Set<String> allFiles = new HashSet<>();
+        allFiles.addAll(curCommit.getFiles());
+        allFiles.addAll(otherCommit.getFiles());
+        allFiles.addAll(splitPoint.getFiles());
+        for (String fileName: allFiles) {
+            String orgFileHash = splitPoint.getFileHash(fileName);
+            String curFileHash = curCommit.getFileHash(fileName);
+            String otherFileHash = otherCommit.getFileHash(fileName);
+            File orgFile = null;
+            File curFile = null;
+            File otherFile = null;
+            String orgFileContent = null;
+            String curFileContent = null;
+            String otherFileContent = null;
+            if (orgFileHash != null) {
+                orgFile = getBlobFile(orgFileHash, fileName);
+                orgFileContent = Utils.readContentsAsString(orgFile);
+            }
+            if (curFileHash != null) {
+                curFile = getBlobFile(curFileHash,  fileName);
+                curFileContent = Utils.readContentsAsString(curFile);
+            }
+            if (otherFileHash != null) {
+                otherFile = getBlobFile(otherFileHash, fileName);
+                otherFileContent = Utils.readContentsAsString(otherFile);
+            }
+
+            if (orgFileHash != null) {
+                if (curFileHash != null && otherFileHash != null) {
+                    if (curFileContent.equals(orgFileContent) && !otherFileContent.equals(orgFileContent)) {
+                        // Modified in other but not HEAD, stage it
+                        stageFileForAdd(otherFile);
+                    } else if (!curFileContent.equals(orgFileContent) && !otherFileContent.equals(orgFileContent)) {
+                        // Modified in both other and HEAD in different way,
+                        // put them into one file then stage. Print encounter merge conflict
+                        String mergeFileContent = "<<<<<<< HEAD\n";
+                        mergeFileContent += curFileContent;
+                        mergeFileContent += "=======\n";
+                        mergeFileContent += otherFileContent;
+                        mergeFileContent += ">>>>>>>\n";
+                        File mergeFile = Utils.join(STAGE_DIR, fileName);
+                        writeContents(mergeFile, mergeFileContent);
+                        System.out.print("Encountered a merge conflict.");
+                    }
+                    // Modified in HEAD but not in other, leave it unchanged
+                    // Modified in both other and HEAD in same way, leave it unchanged.
+                } else if (curFileHash != null) {
+                    // Unmodified in HEAD but not present in other, remove it
+                    if (curFileContent.equals(orgFileContent)) {
+                        mergeCommit.removeBlob(fileName);
+                    }
+                }
+                // Unmodified in other but not present in HEAD, remain removed
+            } else {
+                // Not in split nor other but in HEAD, leave it unchanged
+                if (curFileHash == null && otherFileHash != null) {
+                    // Not in split nor HEAD but in other, stage it
+                    stageFileForAdd(otherFile);
+                }
+            }
+        }
+        // Make merge commit
+        writeCommit(mergeCommit);
+        updateCommitPointers(mergeCommit.getHash());
     }
 
     public static void setupPersistence() {
@@ -316,13 +405,63 @@ public class Repository {
         return Utils.join(blobDir, fileName);
     }
 
+    public static boolean hasStagedFiles() {
+        List<String> filesToAdd = Utils.plainFilenamesIn(STAGE_DIR);
+        List<String> filesToRemove = Utils.plainFilenamesIn(REMOVE_DIR);
+        return (filesToAdd != null && !filesToAdd.isEmpty()) ||
+                (filesToRemove != null && !filesToRemove.isEmpty());
+    }
+
+    public static void checkUntrackedFiles() {
+        Commit curCommit = getCommit(branches.get(head));
+        List<String> workingFiles = Utils.plainFilenamesIn(CWD);
+        if (workingFiles != null) {
+            for (String workingFileName: workingFiles) {
+                if (!curCommit.hasFile(workingFileName)) {
+                    Utils.exitWithMsg("There is an untracked file in the way; delete it, or add and commit it first.");
+                }
+            }
+        }
+    }
+
     public static boolean hasAscendentCommit(Commit commit, String checkCommitHash) {
         if (commit == null) {
             return false;
         } else if (commit.getHash().equals(checkCommitHash)) {
             return true;
         }
-        return hasAscendentCommit(getCommit(commit.getParentHash()), checkCommitHash);
+        return false;
+//        for (String parentHash: commit.getParentHashes()) {
+//            return hasAscendentCommit(getCommit(parentHash), checkCommitHash);
+//        }
+    }
+
+    public static Commit getLastSplitPoint(Commit commit1, Commit commit2) {
+        Set<String> branch1Hashes = new HashSet<>();
+        Set<String> branch2Hashes = new HashSet<>();
+        return _getSplitPoint(0, commit1, commit2, branch1Hashes, branch2Hashes);
+    }
+
+    private static Commit _getSplitPoint(int count, Commit commit1, Commit commit2, Set<String> branch1Hashes, Set<String>branch2Hashes) {
+        if (commit1 == null && commit2 == null) {
+            return null;
+        }
+        if (count % 2 == 0 && commit1 != null) {
+            branch1Hashes.add(commit1.getHash());
+            if (branch1Hashes.contains(commit1.getHash()) && branch2Hashes.contains(commit1.getHash())) {
+                return commit1;
+            } else {
+                commit1 = getCommit(commit1.getParentHash());
+            }
+        } else {
+            branch2Hashes.add(commit2.getHash());
+            if (branch1Hashes.contains(commit2.getHash()) && branch2Hashes.contains(commit2.getHash())) {
+                return commit2;
+            } else {
+                commit2 = getCommit(commit2.getParentHash());
+            }
+        }
+        return _getSplitPoint(count + 1, commit1, commit2, branch1Hashes, branch2Hashes);
     }
 
     public static void updateCommitPointers(String commitHash) {

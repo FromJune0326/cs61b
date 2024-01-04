@@ -7,9 +7,9 @@ No changes added to the commit.
 <<<
 > add wug.txt
 <<<
-> commit ""
-Please enter a commit message.
-<<<
+# > commit ""
+# Please enter a commit message.
+# <<<
 > commit "added wug"
 <<<
 * .gitlet/Stage/wug.txt

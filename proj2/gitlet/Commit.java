@@ -4,6 +4,7 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -14,23 +15,23 @@ import java.util.TreeMap;
 public class Commit implements Serializable {
     private String dateCreated;
 
-    private String parentHash = null;
+    private Set<String> parentHashes = new HashSet<>();
 
     /** The message of this Commit. */
     private String message;
 
     private TreeMap<String, String> blobHashes = new TreeMap<>();
 
-    public Commit(String msg, String date, Commit parent) {
+    public Commit(String msg, String date, Commit... parents) {
         message = msg;
         dateCreated = date;
-        if (parent != null) {
-            this.parentHash = Utils.sha1(Utils.serialize(parent));
+        for (Commit parent: parents) {
+            this.parentHashes.add(Utils.sha1(Utils.serialize(parent)));
         }
     }
 
-    public String getParentHash() {
-        return parentHash;
+    public Set<String> getParentHashes() {
+        return parentHashes;
     }
 
     public String getDateCreated() {
@@ -77,7 +78,7 @@ public class Commit implements Serializable {
     }
 
     public Set<String> getFiles() {
-        return blobHashes.keySet();
+        return new HashSet(blobHashes.keySet());
     }
 
 }

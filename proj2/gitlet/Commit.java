@@ -3,10 +3,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.TreeSet;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import static gitlet.Utils.join;
 
@@ -23,7 +20,7 @@ public class Commit implements Serializable, Comparable {
 
     private String dateCreated;
 
-    private Set<String> parentHashes = new TreeSet<>();
+    private LinkedList<String> parentHashes = new LinkedList<>();
 
     /** The message of this Commit. */
     private String message;
@@ -40,7 +37,7 @@ public class Commit implements Serializable, Comparable {
         }
     }
 
-    public Set<String> getParentHashes() {
+    public LinkedList<String> getParentHashes() {
         return parentHashes;
     }
 

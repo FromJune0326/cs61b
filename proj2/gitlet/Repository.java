@@ -145,15 +145,18 @@ public class Repository {
         Commit curCommit = Commit.getCommit(branches.get(head));
         while (curCommit != null) {
             // TODO: support displaying merge commit
+            LinkedList<String> parentHashes = curCommit.getParentHashes();
             System.out.println("===");
             System.out.printf("commit %s\n", curCommit.getHash());
+            if (parentHashes.size() > 1) {
+                System.out.printf("Merge: %s %s\n", parentHashes.get(0).substring(0, 7), parentHashes.get(1).substring(0, 7));
+            }
             System.out.printf("Date: %s\n", Utils.getFormattedDate(new Date(curCommit.getDateCreated())));
             System.out.println(curCommit.getMessage());
             System.out.println();
-            Set<String> parentHashes = curCommit.getParentHashes();
             curCommit = null;
-            if (!parentHashes.isEmpty()) {
-                curCommit = Commit.getCommit(parentHashes.iterator().next());
+            if (parentHashes.size() > 0) {
+                curCommit = Commit.getCommit(parentHashes.get(0));
             }
         }
     }
@@ -297,7 +300,7 @@ public class Repository {
             checkoutBranch(branchName);
             Utils.exitWithMsg("Current branch fast-forwarded.");
         }
-        Commit mergeCommit = curCommit.makeCopy(String.format("Merge %s into %s", branchName, head));
+        Commit mergeCommit = curCommit.makeCopy(String.format("Merged %s into %s", branchName, head));
         mergeCommit.addParentHash(otherCommit.getHash());
         Set<String> allFiles = new HashSet<>();
         allFiles.addAll(curCommit.getFiles());
@@ -406,6 +409,7 @@ public class Repository {
         Integer minDepth = Integer.MAX_VALUE;
         for (String commitHash: branch1DepthMap.keySet()) {
             if (branch2DepthMap.containsKey(commitHash) && branch2DepthMap.get(commitHash) < minDepth) {
+                minDepth = branch2DepthMap.get(commitHash);
                 splitPoint = commitHash;
             }
         }

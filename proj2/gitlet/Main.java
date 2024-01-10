@@ -36,12 +36,15 @@ public class Main {
                 break;
             case "global-log":
                 validateNumArgs("global-log", args, 1);
-                // TODO: implement after supporting branch
+                Repository.printGlobalLog();
                 break;
             case "find":
                 validateNumArgs("find", args, 2);
+                Repository.printCommitByMessage(args[1]);
                 break;
             case "status":
+                validateNumArgs("status", args, 1);
+                Repository.printStatus();
                 break;
             case "checkout":
                 if (args.length == 2) {

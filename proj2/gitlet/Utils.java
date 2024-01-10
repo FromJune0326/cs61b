@@ -14,11 +14,7 @@ import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Formatter;
-import java.util.List;
-import java.util.Date;
-import java.util.Locale;
+import java.util.*;
 
 
 /** Assorted utilities.
@@ -191,6 +187,26 @@ class Utils {
         return plainFilenamesIn(new File(dir));
     }
 
+
+    static List<File> filesIn(File dir) {
+        List<File> files = new ArrayList<>();
+        _listf(dir, files);
+        return files;
+    }
+
+
+    static void _listf(File dir, List<File> files) {
+        File[] fArray = dir.listFiles();
+        if (fArray != null) {
+            for (File file: fArray) {
+                if (file.isFile()) {
+                    files.add(file);
+                } else if (file.isDirectory()) {
+                    _listf(file, files);
+                }
+            }
+        }
+    }
     /* OTHER FILE UTILITIES */
 
     /** Return the concatentation of FIRST and OTHERS into a File designator,

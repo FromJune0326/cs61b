@@ -141,36 +141,105 @@ public class Repository {
         updateCommitPointers(newCommit.getHash());
     }
 
+    public static void printCommit(Commit commit) {
+        LinkedList<String> parentHashes = commit.getParentHashes();
+        System.out.println("===");
+        System.out.printf("commit %s\n", commit.getHash());
+        if (parentHashes.size() > 1) {
+            System.out.printf("Merge: %s %s\n", parentHashes.get(0).substring(0, 7), parentHashes.get(1).substring(0, 7));
+        }
+        System.out.printf("Date: %s\n", Utils.getFormattedDate(new Date(commit.getDateCreated())));
+        System.out.println(commit.getMessage());
+        System.out.println();
+    }
+
     public static void printLog() {
         Commit curCommit = Commit.getCommit(branches.get(head));
         while (curCommit != null) {
-            // TODO: support displaying merge commit
+            printCommit(curCommit);
             LinkedList<String> parentHashes = curCommit.getParentHashes();
-            System.out.println("===");
-            System.out.printf("commit %s\n", curCommit.getHash());
-            if (parentHashes.size() > 1) {
-                System.out.printf("Merge: %s %s\n", parentHashes.get(0).substring(0, 7), parentHashes.get(1).substring(0, 7));
-            }
-            System.out.printf("Date: %s\n", Utils.getFormattedDate(new Date(curCommit.getDateCreated())));
-            System.out.println(curCommit.getMessage());
-            System.out.println();
             curCommit = null;
-            if (parentHashes.size() > 0) {
+            if (!parentHashes.isEmpty()) {
                 curCommit = Commit.getCommit(parentHashes.get(0));
             }
         }
     }
 
     public static void printGlobalLog() {
-
+        List<Commit> commits = getAllCommits();
+        for (Commit commit: commits) {
+            printCommit(commit);
+        }
     }
 
-    public static void printCommitByMessage() {
-
+    public static void printCommitByMessage(String msg) {
+        List<Commit> commits = getAllCommits();
+        for (Commit commit: commits) {
+            if (commit.getMessage().contains(msg)) {
+                System.out.println(commit.getHash());
+            }
+        }
     }
 
     public static void printStatus() {
+        // Print branches
+        System.out.println("=== Branches ===");
+        List<String> branchNames = new ArrayList<String>(branches.keySet());
+        Collections.sort(branchNames);
+        for (String branchName: branchNames) {
+            if (head.equals(branchName)) {
+                System.out.print("*");
+            }
+            System.out.println(branchName);
+        }
+        System.out.println();
 
+        // Print staged files
+        System.out.println("=== Staged Files ===");
+        List<String> filesToAdd = Utils.plainFilenamesIn(STAGE_DIR);
+        if (filesToAdd != null) {
+            Collections.sort(filesToAdd);
+            for (String file: filesToAdd) {
+                System.out.println(file);
+            }
+        }
+        System.out.println();
+
+        // Print removed files
+        System.out.println("=== Removed Files ===");
+        List<String> filesToRemove = Utils.plainFilenamesIn(REMOVE_DIR);
+        if (filesToRemove != null) {
+            Collections.sort(filesToRemove);
+            for (String file: filesToRemove) {
+                System.out.println(file);
+            }
+        }
+        System.out.println();
+
+        // Print modified but not staged files
+        Commit curCommit = Commit.getCommit(branches.get(head));
+        List<String> workingFiles = Utils.plainFilenamesIn(CWD);
+        List<String> commitedFiles = new ArrayList<>(curCommit.getFiles());
+        List<String> untrackedFiles = new ArrayList<>();
+        List<String> modifiedFiles = new ArrayList<>();
+        List<String> deletedFiles = new ArrayList<>();
+
+        if (workingFiles != null) {
+            Collections.sort(workingFiles);
+            for (String workingFile: workingFiles) {
+                if (!commitedFiles.contains(workingFile)) {
+                    if (filesToAdd.contains(workingFile)) {
+                        //TODO: implement this later
+                    }
+                }
+            }
+        }
+        System.out.println("=== Modifications Not Staged For Commit ===");
+
+        // print untracked files
+        System.out.println();
+        System.out.println("=== Untracked Files ===");
+        System.out.println();
     }
 
     public static void checkoutFile(String commitHash, String fileName) {
@@ -414,6 +483,15 @@ public class Repository {
             }
         }
         return Commit.getCommit(splitPoint);
+    }
+
+    public static List<Commit> getAllCommits() {
+        List<File> commitFiles = Utils.filesIn(Commit.COMMIT_DIR);
+        List<Commit> commits = new ArrayList<>();
+        for (File file: commitFiles) {
+            commits.add(Commit.getCommit(file));
+        }
+        return commits;
     }
 
     public static void updateCommitPointers(String commitHash) {

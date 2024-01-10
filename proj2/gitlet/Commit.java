@@ -100,6 +100,14 @@ public class Commit implements Serializable, Comparable {
         }
     }
 
+    public static Commit getCommit(File file) {
+        if (file.exists()) {
+            return Utils.readObject(file, Commit.class);
+        } else {
+            return null;
+        }
+    }
+
     public static void writeCommit(Commit commit) {
         File commitFile = getCommitFile(commit.getHash());
         Utils.writeObject(commitFile, commit);

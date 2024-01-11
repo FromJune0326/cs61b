@@ -12,8 +12,11 @@ public class Main {
         if (args.length == 0) {
             Utils.exitWithMsg("Please enter a command.");
         }
-        Repository.readCommitPointers();
         String firstArg = args[0];
+        if (!firstArg.equals("init")) {
+            Repository.checkInitRepo();
+        }
+        Repository.readCommitPointers();
         switch(firstArg) {
             case "init":
                 Repository.initCommit();
@@ -55,10 +58,12 @@ public class Main {
                 } else if (args.length == 3) {
                     // Checkout head file
                     // eg: checkout -- [file name]
+                    validateOperand(args[1], "--");
                     Repository.checkoutFile(null, args[2]);
                 } else if (args.length == 4) {
                     // Checkout specific commit file
                     // eg: checkout [commit id] -- [file name]
+                    validateOperand(args[2], "--");
                     Repository.checkoutFile(args[1], args[3]);
                 }
                 break;
@@ -97,6 +102,12 @@ public class Main {
         if (args.length != n) {
             throw new RuntimeException(
                     String.format("Invalid number of arguments for: %s.", cmd));
+        }
+    }
+
+    public static void validateOperand(String operand, String check) {
+        if (!operand.equals(check)) {
+            Utils.exitWithMsg("Incorrect operands.");
         }
     }
 }

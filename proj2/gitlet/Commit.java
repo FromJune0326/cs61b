@@ -94,10 +94,11 @@ public class Commit implements Serializable, Comparable {
 
     public static Commit getCommit(String hash) {
         if (hash != null) {
-            return Utils.readObject(getCommitFile(hash), Commit.class);
-        } else {
-            return null;
+            if (checkCommitExist(hash)) {
+                return Utils.readObject(getCommitFile(hash), Commit.class);
+            }
         }
+        return null;
     }
 
     public static Commit getCommit(File file) {
@@ -111,6 +112,10 @@ public class Commit implements Serializable, Comparable {
     public static void writeCommit(Commit commit) {
         File commitFile = getCommitFile(commit.getHash());
         Utils.writeObject(commitFile, commit);
+    }
+
+    public static boolean checkCommitExist(String hash) {
+        return Utils.join(COMMIT_DIR, hash.substring(0, 2), hash.substring(2)).exists();
     }
 
     public static File getCommitFile(String hash) {

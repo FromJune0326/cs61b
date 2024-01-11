@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -281,8 +282,19 @@ class Utils {
         return Utils.sha1(Utils.readContentsAsString(file));
     }
 
-//    /** Check if user inputs the validated operands */
-//    static void validateOperands(String cmd, String args[], int n) {
-//
-//    }
+    static void copyFileTo(File srcFile, File destFile) {
+        try {
+            Files.copy(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static void moveFileTo(File srcFile, File destFile) {
+        try {
+            Files.move(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

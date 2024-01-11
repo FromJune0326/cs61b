@@ -67,11 +67,7 @@ public class Repository {
                 Utils.restrictedDelete(stagedFile);
             }
         } else {
-            try {
-                Files.copy(fileToAdd.toPath(), stagedFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            Utils.copyFileTo(fileToAdd, stagedFile);
             // If staged for removal, remove it from remove dir
             File fileToRemove = Utils.join(REMOVE_DIR, fileToAdd.getName());
             if (fileToRemove.exists()) {
@@ -122,11 +118,7 @@ public class Repository {
                 File file = new File(STAGE_DIR, fileName);
                 String fileHash = Utils.getFileHash(file);
                 newCommit.addBlob(fileName, fileHash);
-                try {
-                    Files.move(file.toPath(), Commit.getBlobFile(fileHash, fileName).toPath(), StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                Utils.moveFileTo(file, Commit.getBlobFile(fileHash, fileName));
             }
         }
         if (filesToRemove != null) {
@@ -174,10 +166,15 @@ public class Repository {
 
     public static void printCommitByMessage(String msg) {
         List<Commit> commits = getAllCommits();
+        boolean found = false;
         for (Commit commit: commits) {
             if (commit.getMessage().contains(msg)) {
                 System.out.println(commit.getHash());
+                found = true;
             }
+        }
+        if (!found) {
+            System.out.println("Found no commit with that message.");
         }
     }
 
@@ -257,11 +254,7 @@ public class Repository {
         }
         File workingFile = Utils.join(CWD, fileName);
         File blobFile = Commit.getBlobFile(commit.getFileHash(fileName), fileName);
-        try {
-            Files.copy(blobFile.toPath(), workingFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        Utils.copyFileTo(blobFile, workingFile);
     }
 
     public static void checkoutBranch(String branchName) {
@@ -323,11 +316,7 @@ public class Repository {
         for (String checkoutBlobName: checkedoutCommit.getFiles()) {
             File workingFile = Utils.join(CWD, checkoutBlobName);
             File checkoutBlobFile = Commit.getBlobFile(checkedoutCommit.getFileHash(checkoutBlobName), checkoutBlobName);
-            try {
-                Files.copy(checkoutBlobFile.toPath(), workingFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            Utils.copyFileTo(checkoutBlobFile, workingFile);
         }
 
         // Clear staging area
@@ -369,7 +358,7 @@ public class Repository {
             checkoutBranch(branchName);
             Utils.exitWithMsg("Current branch fast-forwarded.");
         }
-        Commit mergeCommit = curCommit.makeCopy(String.format("Merged %s into %s", branchName, head));
+        Commit mergeCommit = curCommit.makeCopy(String.format("Merged %s into %s.", branchName, head));
         mergeCommit.addParentHash(otherCommit.getHash());
         Set<String> allFiles = new HashSet<>();
         allFiles.addAll(curCommit.getFiles());
@@ -421,6 +410,7 @@ public class Repository {
                     // Unmodified in HEAD but not present in other, remove it
                     if (curFileContent.equals(orgFileContent)) {
                         mergeCommit.removeBlob(fileName);
+                        Utils.restrictedDelete(Utils.join(CWD, fileName));
                     }
                 }
                 // Unmodified in other but not present in HEAD, remain removed
@@ -428,6 +418,7 @@ public class Repository {
                 // Not in split nor other but in HEAD, leave it unchanged
                 if (curFileHash == null && otherFileHash != null) {
                     // Not in split nor HEAD but in other, stage it
+                    Utils.copyFileTo(otherFile, Utils.join(CWD, fileName));
                     stageFileForAdd(otherFile);
                 }
             }
@@ -463,6 +454,12 @@ public class Repository {
                     Utils.exitWithMsg("There is an untracked file in the way; delete it, or add and commit it first.");
                 }
             }
+        }
+    }
+
+    public static void checkInitRepo() {
+        if (!GITLET_DIR.exists()) {
+            Utils.exitWithMsg("Not in an initialized Gitlet directory.");
         }
     }
 

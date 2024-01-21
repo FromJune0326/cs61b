@@ -118,6 +118,20 @@ public class Commit implements Serializable, Comparable {
         return Utils.join(COMMIT_DIR, hash.substring(0, 2), hash.substring(2)).exists();
     }
 
+    public static String getCompleteCommitHash(String hash) {
+        int hashLength = hash.length();
+        File commitDir = Utils.join(COMMIT_DIR, hash.substring(0, 2));
+        List<String> commitHashes = Utils.plainFilenamesIn(commitDir);
+        if (commitHashes != null) {
+            for (String commitHash : commitHashes) {
+                if (commitHash.substring(0, hashLength-2).equals(hash.substring(2))) {
+                    return  hash.substring(0, 2) + commitHash;
+                }
+            }
+        }
+        return hash;
+    }
+
     public static File getCommitFile(String hash) {
         File commitDir = Utils.join(COMMIT_DIR, hash.substring(0, 2));
         if (!commitDir.exists()) {

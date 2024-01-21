@@ -27,7 +27,7 @@ public class Main {
                 break;
             case "commit":
                 validateNumArgs("commit", args, 2);
-                Repository.makeNewCommit(args[1]);
+                Repository.writeNewCommit(args[1]);
                 break;
             case "rm":
                 validateNumArgs("rm", args, 2);

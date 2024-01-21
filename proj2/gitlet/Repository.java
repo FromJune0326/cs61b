@@ -60,7 +60,13 @@ public class Repository {
         if (!fileToAdd.exists()) {
             Utils.exitWithMsg("File does not exist.");
         }
-        File stagedFile = Utils.join(STAGE_DIR, fileToAdd.getName());
+        String fileName = fileToAdd.getName();
+        File stagedFile = Utils.join(STAGE_DIR, fileName);
+        File stagedToRemoveFile = join(REMOVE_DIR, fileName);
+        // If staged for removal, remove it from remove dir
+        if (stagedToRemoveFile.exists()) {
+            Utils.restrictedDelete(stagedToRemoveFile);
+        }
         if (curCommit.hasBlob(fileToAdd)) {
             if (stagedFile.exists()) {
                 // Removed staged file if the file to add is the same as committed one
@@ -68,11 +74,6 @@ public class Repository {
             }
         } else {
             Utils.copyFileTo(fileToAdd, stagedFile);
-            // If staged for removal, remove it from remove dir
-            File fileToRemove = Utils.join(REMOVE_DIR, fileToAdd.getName());
-            if (fileToRemove.exists()) {
-                Utils.restrictedDelete(fileToRemove);
-            }
         }
     }
 
@@ -100,15 +101,21 @@ public class Repository {
         }
     }
 
-    public static void makeNewCommit(String message) {
+    public static void writeNewCommit(String message) {
+        Commit newCommit = makeNewCommit(message);
+        Commit.writeCommit(newCommit);
+        Repository.updateCommitPointers(newCommit.getHash());
+    }
+
+    private static Commit makeNewCommit(String message) {
+        if (message.isEmpty()) {
+            Utils.exitWithMsg("Please enter a commit message.");
+        }
         List<String> filesToAdd = Utils.plainFilenamesIn(STAGE_DIR);
         List<String> filesToRemove = Utils.plainFilenamesIn(REMOVE_DIR);
         if ((filesToAdd == null || filesToAdd.isEmpty()) &&
                 (filesToRemove == null || filesToRemove.isEmpty())) {
             Utils.exitWithMsg("No changes added to the commit.");
-        }
-        if (message.isEmpty()) {
-            Utils.exitWithMsg("Please enter a commit message.");
         }
         Commit curCommit = Commit.getCommit(branches.get(head));
         Commit newCommit = curCommit.makeCopy(message);
@@ -129,8 +136,7 @@ public class Repository {
                 Utils.restrictedDelete(file);
             }
         }
-        Commit.writeCommit(newCommit);
-        updateCommitPointers(newCommit.getHash());
+        return newCommit;
     }
 
     public static void printCommit(Commit commit) {
@@ -245,6 +251,7 @@ public class Repository {
         } else {
             updateCommitPointers(commitHash);
         }
+        commitHash = Commit.getCompleteCommitHash(commitHash);
         Commit commit = Commit.getCommit(commitHash);
         if (commit == null) {
             Utils.exitWithMsg("No commit with that id exists");
@@ -288,6 +295,7 @@ public class Repository {
     }
 
     public static void resetToCommit(String commitHash) {
+        commitHash = Commit.getCompleteCommitHash(commitHash);
         File commitFile =  Utils.join(Commit.COMMIT_DIR, commitHash.substring(0, 2), commitHash.substring(2));
         String headHash = branches.get(head);
         if (!commitFile.exists() || (!hasAscendentCommit(Commit.getCommit(headHash), commitHash) &&
@@ -337,7 +345,6 @@ public class Repository {
 
     /* Merge current branch with target branch */
     public static void mergeBranch(String branchName) {
-        checkUntrackedFiles();
         if (hasStagedFiles()) {
             Utils.exitWithMsg("You have uncommitted changes.");
         }
@@ -347,6 +354,7 @@ public class Repository {
         if (branchName.equals(head)) {
             Utils.exitWithMsg("Cannot merge a branch with itself.");
         }
+        checkUntrackedFiles();
 
         Commit curCommit = Commit.getCommit(branches.get(head));
         Commit otherCommit = Commit.getCommit(branches.get(branchName));
@@ -358,8 +366,6 @@ public class Repository {
             checkoutBranch(branchName);
             Utils.exitWithMsg("Current branch fast-forwarded.");
         }
-        Commit mergeCommit = curCommit.makeCopy(String.format("Merged %s into %s.", branchName, head));
-        mergeCommit.addParentHash(otherCommit.getHash());
         Set<String> allFiles = new HashSet<>();
         allFiles.addAll(curCommit.getFiles());
         allFiles.addAll(otherCommit.getFiles());
@@ -374,6 +380,7 @@ public class Repository {
             String orgFileContent = null;
             String curFileContent = null;
             String otherFileContent = null;
+
             if (orgFileHash != null) {
                 orgFile = Commit.getBlobFile(orgFileHash, fileName);
                 orgFileContent = Utils.readContentsAsString(orgFile);
@@ -387,36 +394,36 @@ public class Repository {
                 otherFileContent = Utils.readContentsAsString(otherFile);
             }
 
-            if (orgFileHash != null) {
-                if (curFileHash != null && otherFileHash != null) {
-                    if (curFileContent.equals(orgFileContent) && !otherFileContent.equals(orgFileContent)) {
-                        // Modified in other but not HEAD, stage it
-                        stageFileForAdd(otherFile);
-                    } else if (!curFileContent.equals(orgFileContent) && !otherFileContent.equals(orgFileContent)) {
-                        // Modified in both other and HEAD in different way,
-                        // put them into one file then stage. Print encounter merge conflict
-                        String mergeFileContent = "<<<<<<< HEAD\n";
-                        mergeFileContent += curFileContent;
-                        mergeFileContent += "=======\n";
-                        mergeFileContent += otherFileContent;
-                        mergeFileContent += ">>>>>>>\n";
-                        File mergeFile = Utils.join(STAGE_DIR, fileName);
-                        writeContents(mergeFile, mergeFileContent);
-                        System.out.print("Encountered a merge conflict.");
-                    }
-                    // Modified in HEAD but not in other, leave it unchanged
-                    // Modified in both other and HEAD in same way, leave it unchanged.
-                } else if (curFileHash != null) {
-                    // Unmodified in HEAD but not present in other, remove it
-                    if (curFileContent.equals(orgFileContent)) {
-                        mergeCommit.removeBlob(fileName);
-                        Utils.restrictedDelete(Utils.join(CWD, fileName));
-                    }
+            if (curFileHash != null && otherFileHash != null) {
+                if (curFileContent.equals(orgFileContent) && !otherFileContent.equals(orgFileContent)) {
+                    // Modified in other but not HEAD, stage it
+                    Utils.copyFileTo(otherFile, Utils.join(CWD, fileName));
+                    stageFileForAdd(otherFile);
+                } else if (!curFileContent.equals(orgFileContent) && !otherFileContent.equals(orgFileContent)) {
+                    // Modified in both other and HEAD in different way,
+                    // put them into one file then stage. Print encounter merge conflict
+                    writeMergeFile(curFileContent, otherFileContent, fileName);
+                }
+                // Modified in HEAD but not in other, leave it unchanged
+                // Modified in both other and HEAD in same way, leave it unchanged.
+            } else if (curFileHash != null) {
+                // Unmodified in HEAD but not present in other, remove it
+                if (curFileContent.equals(orgFileContent)) {
+                    stageFileForRemove(curFile);
+                    Utils.restrictedDelete(Utils.join(CWD, fileName));
+                } else if (orgFileHash != null) {
+                    // Modified in HEAD but removed in other
+                    writeMergeFile(curFileContent, "", fileName);
                 }
                 // Unmodified in other but not present in HEAD, remain removed
-            } else {
+            } else if (orgFileHash != null && otherFileHash != null) {
+                if (!otherFileContent.equals(orgFileContent)) {
+                    // Modified in other but removed in HEAD
+                    writeMergeFile("", otherFileContent, fileName);
+                }
+            } else if (orgFileHash == null) {
                 // Not in split nor other but in HEAD, leave it unchanged
-                if (curFileHash == null && otherFileHash != null) {
+                if (otherFileHash != null) {
                     // Not in split nor HEAD but in other, stage it
                     Utils.copyFileTo(otherFile, Utils.join(CWD, fileName));
                     stageFileForAdd(otherFile);
@@ -424,8 +431,22 @@ public class Repository {
             }
         }
         // Make merge commit
+        Commit mergeCommit = makeNewCommit(String.format("Merged %s into %s.", branchName, head));
+        mergeCommit.addParentHash(otherCommit.getHash());
         Commit.writeCommit(mergeCommit);
         updateCommitPointers(mergeCommit.getHash());
+    }
+
+    private static void writeMergeFile(String curFileContent, String otherFileContent, String fileName) {
+        String mergeFileContent = "<<<<<<< HEAD\n";
+        mergeFileContent += curFileContent;
+        mergeFileContent += "=======\n";
+        mergeFileContent += otherFileContent;
+        mergeFileContent += ">>>>>>>\n";
+        File mergeFile = Utils.join(CWD, fileName);
+        writeContents(mergeFile, mergeFileContent);
+        stageFileForAdd(mergeFile);
+        System.out.print("Encountered a merge conflict.");
     }
 
     public static void setupPersistence() {
@@ -450,7 +471,8 @@ public class Repository {
         List<String> workingFiles = Utils.plainFilenamesIn(CWD);
         if (workingFiles != null) {
             for (String workingFileName: workingFiles) {
-                if (!curCommit.hasFile(workingFileName)) {
+                File stagedFile = Utils.join(STAGE_DIR, workingFileName);
+                if (!curCommit.hasFile(workingFileName) && !stagedFile.exists()) {
                     Utils.exitWithMsg("There is an untracked file in the way; delete it, or add and commit it first.");
                 }
             }
